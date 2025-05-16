@@ -10,6 +10,7 @@
 #include <time.h>
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include "iphdr.h"
@@ -58,6 +59,9 @@ bool load_blocked_sites(const char *filename){
 bool is_blocked(const char *host){
     clock_t start, end;
     start = clock();
+
+    std::string host_lower = host;
+    std::transform(host_lower.begin(), host_lower.end(), host_lower.begin(), ::tolower);
 
     bool result = blocked_sites.find(host) != blocked_sites.end();
 
@@ -153,7 +157,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
         // Extract host
         host_ptr += strlen("Host: ");
-        while (host_ptr[i] && host_ptr[i] != '\r' && host_ptr[i] != '\n' && i < 255){
+        while (host_ptr[i] && host_ptr[i] != '\r' && host_ptr[i] != '\n' && host_ptr[i] != ':' && i < 255){
             host[i] = host_ptr[i];
             i++;
         }
@@ -254,5 +258,6 @@ int main(int argc, char **argv)
     printf("closing library handle\n");
     nfq_close(h);
 
+    blocked_sites.clear();
     exit(0);
 }
